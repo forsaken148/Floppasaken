@@ -124,10 +124,21 @@ end
 -- ═══════════════════════════════════════════════════════════════
 -- LOAD UI
 -- ═══════════════════════════════════════════════════════════════
-local LoadedUI, WindUI = pcall(function()
-    return loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
-end)
-if not LoadedUI or not WindUI then return warn("Failed to load the UI library") end
+local WindUI
+local _uiUrls = {
+    "https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua",
+    "https://github.com/Footagesus/WindUI/releases/latest/download/main.lua",
+}
+for _, url in ipairs(_uiUrls) do
+    local ok, result = pcall(function()
+        local src = game:HttpGet(url)
+        if not src or #src < 100 then error("empty") end
+        return loadstring(src)()
+    end)
+    if ok and result then WindUI = result; break end
+    task.wait(0.5)
+end
+if not WindUI then return warn("Failed to load the UI library") end
 
 local LogoId     = "rbxassetid://132306729831610"
 local DiscordLink= "https://discord.gg/rA3Vm8u9U"
