@@ -125,20 +125,40 @@ end
 -- LOAD UI
 -- ═══════════════════════════════════════════════════════════════
 local WindUI
+local _cacheFile = "FlexSaken_WindUI.lua"
 local _uiUrls = {
     "https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua",
+    "https://raw.githubusercontent.com/Footagesus/WindUI/refs/heads/main/dist/main.lua",
     "https://github.com/Footagesus/WindUI/releases/latest/download/main.lua",
 }
-for _, url in ipairs(_uiUrls) do
-    local ok, result = pcall(function()
-        local src = game:HttpGet(url)
-        if not src or #src < 100 then error("empty") end
-        return loadstring(src)()
-    end)
-    if ok and result then WindUI = result; break end
-    task.wait(0.5)
+
+-- Try loading from disk cache first (avoids network entirely on re-runs)
+local _cached = pcall(function()
+    if isfile and isfile(_cacheFile) then
+        local src = readfile(_cacheFile)
+        if src and #src > 500 then
+            local lib = loadstring(src)()
+            if lib then WindUI = lib end
+        end
+    end
+end)
+
+-- If cache missed, try each URL
+if not WindUI then
+    for _, url in ipairs(_uiUrls) do
+        local ok, result = pcall(function()
+            local src = game:HttpGet(url, true)
+            if not src or #src < 500 then error("empty response") end
+            -- Save to disk for next run
+            pcall(function() if writefile then writefile(_cacheFile, src) end end)
+            return loadstring(src)()
+        end)
+        if ok and result then WindUI = result; break end
+        task.wait(1)
+    end
 end
-if not WindUI then return warn("Failed to load the UI library") end
+
+if not WindUI then return warn("[FlexSaken] Failed to load WindUI — check your internet connection and try again") end
 
 local LogoId     = "rbxassetid://132306729831610"
 local DiscordLink= "https://discord.gg/rA3Vm8u9U"
